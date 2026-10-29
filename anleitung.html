@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeiterfassung installieren</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root {
+    --ink: #16323f;
+    --ink-soft: #4a6572;
+    --paper: #f7f4ec;
+    --card: #fffdf8;
+    --line: #e2dccd;
+    --teal: #1b3a4b;
+    --teal-2: #2d6072;
+    --amber: #d98b2b;
+    --green: #3a7d5c;
+    --grey-soft: #ebe6da;
+    --shadow: 0 2px 6px rgba(22,50,63,.08), 0 12px 30px rgba(22,50,63,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    padding: 0 0 70px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header.app {
+    background: var(--teal);
+    color: #f7f4ec;
+    padding: 20px;
+    border-bottom: 3px solid var(--amber);
+  }
+  header.app h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+  header.app .sub { margin: 3px 0 0; font-size: .82rem; color: #bcd0d8; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 22px 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .card.hero { border-color: var(--teal-2); border-width: 2px; }
+  .open-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--teal); color: #fff; border: none;
+    font-family: inherit; font-size: 1.15rem; font-weight: 600;
+    padding: 17px 26px; border-radius: 12px; cursor: pointer;
+    transition: filter .15s, transform .05s; text-decoration: none;
+    width: 100%; text-align: center;
+  }
+  .open-btn:hover { filter: brightness(1.12); }
+  .open-btn:active { transform: translateY(1px); }
+  .dl-btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: transparent; color: var(--teal-2); border: 1.5px solid var(--line);
+    font-family: inherit; font-size: .98rem; font-weight: 600;
+    padding: 12px 20px; border-radius: 11px; cursor: pointer;
+    text-decoration: none;
+  }
+  .dl-btn:hover { background: var(--grey-soft); }
+  .status { margin-top: 12px; font-size: .88rem; color: var(--ink-soft); min-height: 1.2em; }
+  .status.ok { color: var(--green); font-weight: 600; }
+  .status.err { color: #b5453c; font-weight: 600; }
+  h2 { font-size: 1.08rem; margin: 0 0 12px; }
+  ol { margin: 8px 0 0; padding-left: 20px; }
+  ol li { margin: 9px 0; }
+  code {
+    background: var(--grey-soft); padding: 1px 6px; border-radius: 5px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: .85em;
+  }
+  .lead { font-size: 1.02rem; color: var(--ink); margin: 0 0 18px; }
+  .note {
+    background: #fbf3e3; border: 1px solid #eed9b4; border-radius: 10px;
+    padding: 13px 15px; font-size: .88rem; color: #7a5a1e; margin-top: 16px; line-height: 1.5;
+  }
+  .platform-tag {
+    display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .4px;
+    text-transform: uppercase; background: var(--grey-soft); color: var(--ink-soft);
+    padding: 3px 9px; border-radius: 20px; margin-bottom: 10px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .step-share {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 5px; background: #e8f0f5;
+    color: var(--teal-2); font-weight: 700; vertical-align: middle; font-size: .8rem;
+  }
+  .divider-txt {
+    display: flex; align-items: center; gap: 12px; margin: 20px 0 16px;
+    color: var(--ink-soft); font-size: .82rem; text-transform: uppercase; letter-spacing: .6px;
+  }
+  .divider-txt::before, .divider-txt::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>Zeiterfassung installieren</h1>
+  <p class="sub">Direkt in Safari öffnen &middot; dann zum Home-Bildschirm</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card hero">
+    <p class="lead"><b>Der zuverlässige Weg fürs iPhone:</b> die App direkt hier im Browser öffnen &mdash; nicht als Datei speichern. Aus einer geöffneten Seite lässt sie sich sauber zum Home-Bildschirm hinzufügen und läuft dann wie eine echte App.</p>
+    <a class="open-btn" id="openBtn" href="./">App jetzt öffnen ↗</a>
+    <div class="note">
+      <b>Warum nicht als Datei?</b> Wenn man eine gespeicherte <code>.html</code> aus der Dateien-App in Safari öffnet, zeigt iOS sie oft nur als Vorschau &mdash; Eingaben und Speichern funktionieren dann nicht. Aus einer <b>geöffneten Webseite</b> heraus klappt „Zum Home-Bildschirm“ dagegen zuverlässig.
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="platform-tag">iPhone · Schritt für Schritt</span>
+    <h2>Als App auf den Home-Bildschirm</h2>
+    <ol>
+      <li>Oben auf <b>„App jetzt öffnen“</b> tippen &mdash; die Zeiterfassung öffnet sich in Safari.</li>
+      <li>Unten in Safari auf das <b>Teilen-Symbol</b> <span class="step-share">↑</span> tippen.</li>
+      <li>Im Menü nach unten scrollen &rarr; <b>„Zum Home-Bildschirm“</b> wählen.</li>
+      <li>Namen bestätigen („Zeiterfassung“) &rarr; <b>Hinzufügen</b>. Fertig: Das Symbol liegt jetzt auf dem Home-Bildschirm und startet die App im Vollbild.</li>
+    </ol>
+    <div class="note">
+      Ihre Eingaben bleiben auf dem iPhone gespeichert. <b>Wichtig:</b> Die App auf dem Home-Bildschirm hat einen eigenen Speicher, getrennt von Safari. Laden Sie Ihre <code>Zeiterfassung.json</code> deshalb einmal <b>in der Home-Bildschirm-App</b> über <b>Laden ↓</b>. Danach zum Abgleich mit dem Mac: <b>Sichern ↑</b> &rarr; „In Dateien sichern“ &rarr; iCloud Drive.
+    </div>
+  </div>
+
+  <div class="divider-txt">Für den Mac oder als Sicherung</div>
+
+  <div class="card">
+    <span class="platform-tag">Mac</span>
+    <h2>Datei herunterladen</h2>
+    <p style="margin:0 0 14px;font-size:.94rem;color:var(--ink-soft);">Auf dem Mac können Sie die App als einzelne Datei ablegen (am besten in iCloud Drive) und per Doppelklick öffnen.</p>
+    <a class="dl-btn" id="dlBtn" href="index.html" download="Zeiterfassung.html">↓ Zeiterfassung.html speichern</a>
+    <div class="status" id="status"></div>
+    <p style="margin:16px 0 0;font-size:.88rem;color:var(--ink-soft);">Falls der Knopf die Datei nur anzeigt: Rechtsklick &rarr; „Verknüpfte Datei sichern unter…“.</p>
+  </div>
+
+  <div class="card">
+    <h2>Zwei getrennte Dateien</h2>
+    <p style="margin:0;font-size:.92rem;color:var(--ink-soft);">
+      <code>Zeiterfassung.html</code> ist die App selbst.<br>
+      <code>Zeiterfassung.json</code> sind Ihre erfassten Zeiten &mdash; sie entsteht über „Sichern ↑“ in der App und wird über iCloud zwischen den Geräten geteilt.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    // Mac-Download mit Blob-Fallback
+    const dlBtn = document.getElementById("dlBtn");
+    const status = document.getElementById("status");
+    if (dlBtn) {
+      dlBtn.addEventListener("click", async function (e) {
+        try {
+          e.preventDefault();
+          status.className = "status";
+          status.textContent = "Datei wird vorbereitet …";
+          const res = await fetch("index.html", { cache: "no-store" });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const text = await res.text();
+          const blob = new Blob([text], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "Zeiterfassung.html";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          status.className = "status ok";
+          status.textContent = "Download gestartet. Am besten in iCloud Drive ablegen.";
+        } catch (err) {
+          status.className = "status err";
+          status.textContent = "Automatischer Download nicht möglich. Bitte Rechtsklick und „Ziel sichern unter“ wählen.";
+          window.location.href = "./";
+        }
+      });
+    }
+  })();
+</script>
+</body>
+</html>

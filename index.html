@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1b3a4b">
+<meta name="apple-mobile-web-app-title" content="Zeiterfassung">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Zeiterfassung Schleswig-Holstein</title>
+<style>
+  :root {
+    --ink: #16323f;
+    --ink-soft: #4a6572;
+    --paper: #f7f4ec;
+    --card: #fffdf8;
+    --line: #e2dccd;
+    --teal: #1b3a4b;
+    --teal-2: #2d6072;
+    --amber: #d98b2b;
+    --amber-soft: #f4e3c7;
+    --green: #3a7d5c;
+    --green-soft: #dcefe3;
+    --red: #b5453c;
+    --red-soft: #f4ddd9;
+    --blue: #37698f;
+    --blue-soft: #dbe8f2;
+    --violet: #6a5a8c;
+    --violet-soft: #e6e0f0;
+    --grey-soft: #ebe6da;
+    --shadow: 0 2px 6px rgba(22,50,63,.08), 0 12px 30px rgba(22,50,63,.06);
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.45;
+    padding-bottom: 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono, input[type=time], input[type=number], input[type=date], select, table {
+    font-family: "SF Mono", ui-monospace, "Menlo", "Consolas", monospace;
+  }
+
+  header.app {
+    background: var(--teal);
+    color: #f7f4ec;
+    padding: 18px 20px 20px;
+    border-bottom: 3px solid var(--amber);
+  }
+  header.app h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    letter-spacing: .3px;
+    font-weight: 600;
+  }
+  header.app .sub {
+    margin: 3px 0 0;
+    font-size: .82rem;
+    color: #bcd0d8;
+    letter-spacing: .2px;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 18px 16px; }
+
+  /* Summary cards */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 14px 13px;
+    box-shadow: var(--shadow);
+  }
+  .stat .label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--ink-soft);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .stat .val {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 5px;
+    letter-spacing: -.5px;
+  }
+  .stat .val.pos { color: var(--green); }
+  .stat .val.neg { color: var(--red); }
+  .stat .foot { font-size: .68rem; color: var(--ink-soft); margin-top: 2px; }
+
+  section.block {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  section.block h2 {
+    margin: 0 0 12px;
+    font-size: 1.02rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section.block h2 .dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--amber);
+    display: inline-block;
+  }
+
+  /* Block-Kopf mit Steuerung (verschieben / ein-/ausklappen) */
+  .block-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .block-head h2 { margin: 0 0 12px; }
+  .block-ctrl { display: flex; gap: 4px; flex: 0 0 auto; margin-bottom: 12px; }
+  .bc-btn {
+    background: transparent; border: 1.5px solid var(--line); color: var(--ink-soft);
+    border-radius: 8px; width: 34px; height: 34px; min-height: 0; padding: 0;
+    font-size: .8rem; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .bc-btn:hover { background: var(--grey-soft); }
+  .bc-btn:disabled { opacity: .3; cursor: default; }
+  .bc-btn:disabled:hover { background: transparent; }
+  .bc-toggle { color: var(--teal-2); }
+  section.block.collapsed .block-body { display: none; }
+  section.block.collapsed .block-head h2 { margin-bottom: 0; }
+  section.block.collapsed .block-ctrl { margin-bottom: 0; }
+  section.block.collapsed .bc-toggle { transform: rotate(-90deg); }
+
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: .72rem; color: var(--ink-soft); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  input, select {
+    font-size: 1rem;
+    padding: 9px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--ink);
+    min-height: 42px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--teal-2); }
+  input[type=date], input[type=time] { min-width: 130px; }
+  input[type=number] { width: 90px; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 16px;
+    font-size: .92rem;
+    font-weight: 600;
+    min-height: 42px;
+    transition: filter .15s, transform .05s;
+  }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--teal); color: #fff; }
+  button.primary:hover { filter: brightness(1.12); }
+  button.amber { background: var(--amber); color: #fff; }
+  button.amber:hover { filter: brightness(1.06); }
+  button.ghost { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line); }
+  button.ghost:hover { background: var(--grey-soft); }
+  button.danger-ghost { background: transparent; color: var(--red); border: 1.5px solid var(--red-soft); }
+  button.tiny { padding: 5px 9px; font-size: .78rem; min-height: 0; border-radius: 7px; }
+
+  /* Table */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+  th, td { padding: 8px 8px; text-align: left; white-space: nowrap; }
+  thead th {
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--ink-soft); border-bottom: 2px solid var(--line);
+    position: sticky; top: 0; background: var(--card);
+  }
+  tbody tr { border-bottom: 1px solid var(--line); }
+  tbody tr.weekend { background: #f2efe6; color: var(--ink-soft); }
+  tbody tr.holiday { background: var(--amber-soft); }
+  tbody tr.absence-u { background: var(--green-soft); }
+  tbody tr.absence-uh { background: var(--green-soft); }
+  tbody tr.absence-k { background: var(--red-soft); }
+  tbody tr.absence-kh { background: var(--red-soft); }
+  tbody tr.absence-o { background: var(--violet-soft); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.pos { color: var(--green); font-weight: 600; }
+  td.neg { color: var(--red); font-weight: 600; }
+  .badge {
+    display: inline-block; font-size: .68rem; padding: 2px 8px; border-radius: 20px;
+    font-weight: 700; letter-spacing: .3px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .b-work { background: var(--blue-soft); color: var(--blue); }
+  .b-u { background: var(--green-soft); color: var(--green); }
+  .b-k { background: var(--red-soft); color: var(--red); }
+  .b-f { background: var(--amber-soft); color: var(--amber); }
+  .b-we { background: var(--grey-soft); color: var(--ink-soft); }
+  .b-o { background: var(--violet-soft); color: var(--violet); }
+  .day-name { font-size: .66rem; color: var(--ink-soft); }
+
+  .hint { font-size: .78rem; color: var(--ink-soft); margin: 8px 0 0; }
+  .divider { height: 1px; background: var(--line); margin: 14px 0; border: none; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .spacer { flex: 1 1 auto; }
+  select.month-pick { min-width: 150px; }
+
+  .empty { text-align: center; padding: 26px 10px; color: var(--ink-soft); font-size: .9rem; }
+
+  /* Sync */
+  .sync-status { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+  .sync-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #b9b0a0;
+    display: inline-block; flex: 0 0 auto;
+  }
+  .sync-dot.connected { background: var(--green); }
+  .sync-dot.dirty { background: var(--amber); }
+  .sync-dot.error { background: var(--red); }
+  .auto-toggle {
+    display: flex; align-items: center; gap: 6px; font-size: .85rem;
+    color: var(--ink-soft); cursor: pointer; font-weight: 600;
+  }
+  .auto-toggle input { min-height: 0; width: auto; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%) translateY(20px);
+    background: var(--teal); color: #fff; padding: 10px 18px; border-radius: 24px;
+    font-size: .85rem; box-shadow: var(--shadow); opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s; z-index: 50; font-weight: 600;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  details.help { margin-top: 4px; }
+  details.help summary {
+    cursor: pointer; font-size: .82rem; color: var(--teal-2); font-weight: 600;
+    list-style: none; padding: 6px 0;
+  }
+  details.help summary::-webkit-details-marker { display: none; }
+  details.help summary::before { content: "▸ "; }
+  details.help[open] summary::before { content: "▾ "; }
+  details.help .body { font-size: .84rem; color: var(--ink-soft); line-height: 1.55; }
+  details.help .body ul { margin: 6px 0; padding-left: 20px; }
+  details.help .body li { margin: 3px 0; }
+  code.k { background: var(--grey-soft); padding: 1px 5px; border-radius: 4px; font-size: .8rem; }
+
+  @media (max-width: 620px) {
+    .summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .stat .val { font-size: 1.3rem; }
+    .field { flex: 1 1 46%; }
+    input[type=date], input[type=time] { min-width: 0; width: 100%; }
+    .field.type-field, .field.value-field { flex: 1 1 100%; }
+    select, input { width: 100%; }
+    .row { gap: 10px; }
+  }
+
+  @media print {
+    header.app { border-bottom: 2px solid #000; }
+    section.block { box-shadow: none; page-break-inside: avoid; }
+    .no-print { display: none !important; }
+    body { padding-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>Zeiterfassung</h1>
+  <p class="sub">Zeitsaldo &middot; Feiertage Schleswig-Holstein &middot; iCloud-Sync</p>
+</header>
+
+<div class="wrap">
+
+  <!-- SUMMARY -->
+  <div class="summary" id="summary"></div>
+
+  <!-- BLOCKS CONTAINER (verschiebbar/ausblendbar) -->
+  <div id="blocks">
+
+  <!-- ICLOUD SYNC -->
+  <section class="block no-print" data-block="sync">
+    <div class="block-head">
+      <h2><span class="dot"></span>iCloud-Synchronisation</h2>
+      <div class="block-ctrl">
+        <button class="bc-btn" data-move="up" title="Nach oben">▲</button>
+        <button class="bc-btn" data-move="down" title="Nach unten">▼</button>
+        <button class="bc-btn bc-toggle" data-toggle title="Ein-/Ausklappen">▾</button>
+      </div>
+    </div>
+    <div class="block-body">
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncStatusText">Nicht verbunden</span>
+    </div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button class="primary" id="syncConnect">iCloud-Datei verbinden</button>
+      <button class="amber" id="syncLoad">Laden ↓</button>
+      <button class="amber" id="syncSave">Sichern ↑</button>
+      <div class="spacer"></div>
+      <label class="auto-toggle" id="autoWrap" style="display:none;">
+        <input type="checkbox" id="autoSave"> <span>Auto-Speichern</span>
+      </label>
+    </div>
+    <p class="hint" id="syncHint">Legen Sie eine Datei in iCloud Drive an (z.B. <code class="k">Zeiterfassung.json</code>) und verbinden Sie sie hier. Auf beiden Geräten dieselbe Datei wählen &mdash; iCloud synchronisiert sie automatisch zwischen Mac und iPhone.</p>
+    <input type="file" id="syncLoadFile" accept="application/json,.json" style="display:none;">
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="block no-print" data-block="settings">
+    <div class="block-head">
+      <h2><span class="dot"></span>Grundeinstellungen</h2>
+      <div class="block-ctrl">
+        <button class="bc-btn" data-move="up" title="Nach oben">▲</button>
+        <button class="bc-btn" data-move="down" title="Nach unten">▼</button>
+        <button class="bc-btn bc-toggle" data-toggle title="Ein-/Ausklappen">▾</button>
+      </div>
+    </div>
+    <div class="block-body">
+    <div class="row">
+      <div class="field">
+        <label for="carryDate">Saldo-Stichtag (Ende Vortag)</label>
+        <input type="date" id="carryDate">
+      </div>
+      <div class="field">
+        <label for="carryHours">Übernommener Saldo (Std.)</label>
+        <input type="number" id="carryHours" step="0.25" placeholder="z.B. 12.5 oder -3">
+      </div>
+      <div class="field">
+        <label for="targetDay">Soll pro Werktag (Std.)</label>
+        <input type="number" id="targetDay" step="0.25" value="8">
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="row">
+      <div class="field">
+        <label for="vacYear">Urlaubsjahr</label>
+        <input type="number" id="vacYear" step="1" placeholder="2026">
+      </div>
+      <div class="field">
+        <label for="vacEntitle">Urlaubsanspruch (Tage/Jahr)</label>
+        <input type="number" id="vacEntitle" step="0.5" value="30">
+      </div>
+      <div class="field">
+        <label for="vacCarry">Übernommener Urlaub (Tage)</label>
+        <input type="number" id="vacCarry" step="0.5" placeholder="z.B. 5 Resttage">
+      </div>
+      <div class="field" style="align-self:flex-end;">
+        <button class="primary" id="saveSettings">Speichern</button>
+      </div>
+    </div>
+    <p class="hint">Der übernommene Saldo ist Ihr Gleitzeit-Stand am Ende des Tages vor dem Stichtag; ab dem Stichtag wird fortgeschrieben. Minus-Saldo als negative Zahl (z.B. <code class="k">-3</code>). Der Urlaubsanspruch (Standard 30 Tage) gilt für das gewählte Urlaubsjahr; übernommene Resttage aus dem Vorjahr können hier zusätzlich eingetragen werden.</p>
+    </div>
+  </section>
+
+  <!-- ADD ENTRY -->
+  <section class="block no-print" data-block="entry">
+    <div class="block-head">
+      <h2><span class="dot"></span>Tag erfassen</h2>
+      <div class="block-ctrl">
+        <button class="bc-btn" data-move="up" title="Nach oben">▲</button>
+        <button class="bc-btn" data-move="down" title="Nach unten">▼</button>
+        <button class="bc-btn bc-toggle" data-toggle title="Ein-/Ausklappen">▾</button>
+      </div>
+    </div>
+    <div class="block-body">
+    <div class="row">
+      <div class="field">
+        <label for="eDate">Datum</label>
+        <input type="date" id="eDate">
+      </div>
+      <div class="field type-field">
+        <label for="eType">Art des Tages</label>
+        <select id="eType">
+          <option value="work">Arbeit (Kommen/Gehen)</option>
+          <option value="u">Urlaub (ganzer Tag)</option>
+          <option value="uh">Urlaub (halber Tag)</option>
+          <option value="k">Krank (ganzer Tag)</option>
+          <option value="kh">Krank (halber Tag)</option>
+          <option value="oa">Überstundenabbau (ganzer Tag)</option>
+          <option value="oah">Überstundenabbau (halber Tag)</option>
+        </select>
+      </div>
+
+      <div class="field work-only" id="wrapStart">
+        <label for="eStart">Kommen</label>
+        <input type="time" id="eStart">
+      </div>
+      <div class="field work-only" id="wrapEnd">
+        <label for="eEnd">Gehen</label>
+        <input type="time" id="eEnd">
+      </div>
+      <div class="field work-only" id="wrapBreak">
+        <label for="eBreak">Pause (Min.)</label>
+        <input type="number" id="eBreak" step="5" value="30">
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div class="field value-field" style="flex:1 1 100%;">
+        <label for="eNote">Notiz (optional)</label>
+        <input type="text" id="eNote" placeholder="z.B. Homeoffice, Arzttermin ..." style="font-family:inherit;">
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button class="amber" id="addEntry">Eintrag hinzufügen</button>
+      <button class="ghost" id="clearForm">Zurücksetzen</button>
+      <div class="spacer"></div>
+      <span class="hint" id="halfHint">Halbe Abwesenheitstage werden mit 4 Std. bewertet.</span>
+    </div>
+    <p class="hint">Arbeitstage an Feiertagen und Wochenenden werden trotzdem als geleistete Zeit gezählt. An Feiertagen ist das Soll 0 Std. (arbeitsfrei).</p>
+    </div>
+  </section>
+
+  <!-- MONTH FILTER + TABLE -->
+  <section class="block" data-block="ledger">
+    <div class="block-head">
+      <h2><span class="dot"></span>Zeitkonto</h2>
+      <div class="block-ctrl no-print">
+        <button class="bc-btn" data-move="up" title="Nach oben">▲</button>
+        <button class="bc-btn" data-move="down" title="Nach unten">▼</button>
+        <button class="bc-btn bc-toggle" data-toggle title="Ein-/Ausklappen">▾</button>
+      </div>
+    </div>
+    <div class="block-body">
+    <div class="toolbar no-print" style="margin-bottom:12px;">
+      <div class="field" style="gap:4px;">
+        <label for="monthPick" style="margin-bottom:0;">Monat</label>
+        <select id="monthPick" class="month-pick"></select>
+      </div>
+      <div class="spacer"></div>
+      <button class="ghost tiny" id="printBtn">Drucken / PDF</button>
+      <button class="ghost tiny" id="exportBtn">Export (JSON)</button>
+      <button class="ghost tiny" id="importBtn">Import</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="table-scroll">
+      <table id="ledger">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Art</th>
+            <th>Kommen</th>
+            <th>Gehen</th>
+            <th>Pause</th>
+            <th class="num">Ist</th>
+            <th class="num">Soll</th>
+            <th class="num">Diff.</th>
+            <th class="num">Saldo</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+    <div id="ledgerEmpty" class="empty" style="display:none;">Noch keine Einträge in diesem Monat. Erfassen Sie oben einen Tag.</div>
+    </div>
+  </section>
+
+  </div><!-- /#blocks -->
+
+  <section class="block no-print">
+    <details class="help">
+      <summary>Hinweise &amp; Rechenlogik</summary>
+      <div class="body">
+        <ul>
+          <li><b>Saldo fortschreiben:</b> Der übernommene Saldo bildet den Startwert. Jeder Tag verändert ihn um (Ist − Soll).</li>
+          <li><b>Soll:</b> Mo–Fr = eingestellter Wert (Standard 8 Std.). Sa/So = 0 Std. Feiertage = 0 Std. (arbeitsfrei).</li>
+          <li><b>Abwesenheit:</b> Urlaub / Krank ganzer Tag = 8 Std. gutgeschrieben (Diff. 0). Halber Tag = 4 Std., ergibt an einem Werktag also −4 Std.</li>
+          <li><b>Überstundenabbau (Freizeitausgleich):</b> Ganzer Tag senkt den Saldo um 8 Std., halber Tag um 4 Std. — Sie bauen damit aufgebaute Überstunden ab.</li>
+          <li><b>Feiertage:</b> Die gesetzlichen Feiertage in Schleswig-Holstein sind hinterlegt und in der Tabelle markiert. An diesen Tagen ist keine Erfassung nötig.</li>
+          <li><b>Speicherung:</b> Alle Daten liegen lokal in diesem Browser (localStorage). Zusätzlich können Sie oben eine iCloud-Datei verbinden.</li>
+          <li><b>iCloud-Sync (Mac):</b> „iCloud-Datei verbinden“ &rarr; eine <code class="k">.json</code> in iCloud Drive auswählen. Danach mit „Sichern ↑“ schreiben und „Laden ↓“ lesen. Mit „Auto-Speichern“ wird nach jeder Änderung automatisch in die Datei geschrieben. Die Verbindung bleibt auch nach Neustart erhalten.</li>
+          <li><b>iCloud-Sync (iPhone):</b> Safari erlaubt keine feste Dateiverbindung. Nutzen Sie „Laden ↓“ (Datei aus iCloud Drive wählen) und „Sichern ↑“ (Teilen-Menü &rarr; „In Dateien sichern“ &rarr; iCloud Drive, vorhandene Datei ersetzen).</li>
+          <li><b>Konfliktschutz:</b> Beim Laden warnt die App, falls Ihre lokalen Daten neuer sind als die Datei, damit nichts versehentlich überschrieben wird. Faustregel: nach dem Arbeiten auf einem Gerät „Sichern“, vor dem Arbeiten auf dem anderen „Laden“.</li>
+          <li><b>Blöcke anordnen:</b> Über die Knöpfe ▲ ▼ oben rechts an jedem Block verschieben Sie ihn nach oben/unten, mit ▾ klappen Sie ihn ein oder aus. Reihenfolge und Zustand bleiben gespeichert.</li>
+          <li><b>iPhone-Startsymbol:</b> Seite in Safari öffnen &rarr; Teilen &rarr; „Zum Home-Bildschirm“, dann startet sie wie eine App. Ausführlich: <a href="anleitung.html">Installationsanleitung</a>.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const LS_KEY = "zeiterfassung_sh_v1";
+  const HOURS_FULL = 8; // wird durch Einstellung überschrieben (nur Soll); Abwesenheit fix
+  const ABS_FULL = 8;
+  const ABS_HALF = 4;
+
+  // ---------- Feiertage Schleswig-Holstein ----------
+  // Gauß / Anonyme Gregorianische Osterformel
+  function easterSunday(year) {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31); // 3=März,4=April
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+  function addDays(date, days) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+  function ymd(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  // Liefert Map { "YYYY-MM-DD": "Name" } der gesetzlichen Feiertage in SH
+  const holidayCache = {};
+  function holidaysSH(year) {
+    if (holidayCache[year]) return holidayCache[year];
+    const es = easterSunday(year);
+    const map = {};
+    const put = (date, name) => { map[ymd(date)] = name; };
+    // Feste Feiertage
+    put(new Date(year, 0, 1), "Neujahr");
+    put(new Date(year, 4, 1), "Tag der Arbeit");
+    put(new Date(year, 9, 3), "Tag der Deutschen Einheit");
+    put(new Date(year, 9, 31), "Reformationstag");
+    put(new Date(year, 11, 25), "1. Weihnachtstag");
+    put(new Date(year, 11, 26), "2. Weihnachtstag");
+    // Bewegliche Feiertage (relativ zu Ostersonntag)
+    put(addDays(es, -2), "Karfreitag");
+    put(addDays(es, 1), "Ostermontag");
+    put(addDays(es, 39), "Christi Himmelfahrt");
+    put(addDays(es, 50), "Pfingstmontag");
+    holidayCache[year] = map;
+    return map;
+  }
+  function holidayName(dateStr) {
+    const y = parseInt(dateStr.slice(0, 4), 10);
+    return holidaysSH(y)[dateStr] || null;
+  }
+
+  // ---------- Datenmodell ----------
+  // state.settings: { carryDate, carryHours, targetDay, vacYear, vacEntitle, vacCarry }
+  // state.entries: { "YYYY-MM-DD": { type, start, end, breakMin, note } }
+  // state.updatedAt: ISO-Zeitstempel der letzten Änderung (für iCloud-Konfliktschutz)
+  let state = { settings: { carryDate: "", carryHours: 0, targetDay: 8, vacYear: new Date().getFullYear(), vacEntitle: 30, vacCarry: 0 }, entries: {}, updatedAt: null };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state.settings = Object.assign(state.settings, parsed.settings || {});
+        state.entries = parsed.entries || {};
+        state.updatedAt = parsed.updatedAt || null;
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function save(opts) {
+    opts = opts || {};
+    if (!opts.keepTimestamp) state.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+    catch (e) { toast("Speichern fehlgeschlagen"); }
+    // iCloud: Auto-Speichern (nur wenn verbunden, erlaubt und nicht durch Laden ausgelöst)
+    if (!opts.fromSync) syncAfterLocalSave();
+  }
+
+  // ---------- Berechnung ----------
+  function isWeekend(dateStr) {
+    const d = new Date(dateStr + "T00:00:00");
+    const wd = d.getDay(); // 0=So,6=Sa
+    return wd === 0 || wd === 6;
+  }
+  function targetForDay(dateStr) {
+    if (isWeekend(dateStr)) return 0;
+    if (holidayName(dateStr)) return 0;
+    return Number(state.settings.targetDay) || 8;
+  }
+  function timeToMin(t) {
+    if (!t) return null;
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+  // Ist-Stunden für einen Eintrag
+  function actualHours(entry) {
+    if (!entry) return 0;
+    switch (entry.type) {
+      case "u": case "k": return ABS_FULL;
+      case "uh": case "kh": return ABS_HALF;
+      case "oa": return 0;        // Überstundenabbau ganzer Tag: 0 geleistet -> Diff = -Soll
+      case "oah": return ABS_HALF; // Überstundenabbau halber Tag: 4 Std. -> Diff = -4 an Werktagen
+      case "work": {
+        const s = timeToMin(entry.start);
+        let e = timeToMin(entry.end);
+        if (s === null || e === null) return 0;
+        if (e < s) e += 24 * 60; // über Mitternacht
+        const gross = e - s;
+        const net = gross - (Number(entry.breakMin) || 0);
+        return Math.max(0, net) / 60;
+      }
+      default: return 0;
+    }
+  }
+
+  function fmtH(h) {
+    const sign = h < 0 ? "-" : "";
+    const abs = Math.abs(h);
+    const hh = Math.floor(abs);
+    const mm = Math.round((abs - hh) * 60);
+    if (mm === 60) return `${sign}${hh + 1}:00`;
+    return `${sign}${hh}:${String(mm).padStart(2, "0")}`;
+  }
+  function fmtSignedH(h) {
+    if (Math.abs(h) < 0.001) return "±0:00";
+    return (h > 0 ? "+" : "") + fmtH(h);
+  }
+
+  const TYPE_META = {
+    work: { label: "Arbeit", cls: "b-work" },
+    u:    { label: "Urlaub", cls: "b-u" },
+    uh:   { label: "Urlaub ½", cls: "b-u" },
+    k:    { label: "Krank", cls: "b-k" },
+    kh:   { label: "Krank ½", cls: "b-k" },
+    oa:   { label: "Überstd.-Abbau", cls: "b-o" },
+    oah:  { label: "Überstd.-Abbau ½", cls: "b-o" },
+  };
+  const DE_DAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  const DE_MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+  function deDate(dateStr) {
+    const d = new Date(dateStr + "T00:00:00");
+    return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+  }
+
+  // Baut die vollständige, chronologische Salden-Reihe ab Stichtag
+  function buildLedger() {
+    const startCarry = Number(state.settings.carryHours) || 0;
+    const carryDate = state.settings.carryDate; // Saldo gilt bis inkl. diesem Tag
+    const keys = Object.keys(state.entries).sort();
+    let running = startCarry;
+    const rows = [];
+    for (const k of keys) {
+      // Einträge vor/gleich Stichtag ignorieren wir NICHT bei der Anzeige,
+      // aber sie zählen nicht zum fortgeschriebenen Saldo, wenn sie <= carryDate liegen.
+      const beforeCarry = carryDate && k <= carryDate;
+      const entry = state.entries[k];
+      const actual = actualHours(entry);
+      const target = targetForDay(k);
+      const diff = actual - target;
+      if (!beforeCarry) running += diff;
+      rows.push({
+        date: k, entry, actual, target, diff,
+        balance: beforeCarry ? null : running,
+        beforeCarry
+      });
+    }
+    return { rows, startCarry };
+  }
+
+  // ---------- Rendering ----------
+  function computeTotals() {
+    const { rows, startCarry } = buildLedger();
+    let finalBalance = startCarry;
+    let vacDays = 0, sickDays = 0, workedH = 0, overtimeCutH = 0;
+    const vacYear = String(state.settings.vacYear || new Date().getFullYear());
+    let vacDaysYear = 0; // Urlaub im gewählten Urlaubsjahr
+    for (const r of rows) {
+      if (r.balance !== null) finalBalance = r.balance;
+      if (!r.entry) continue;
+      const inVacYear = r.date.slice(0, 4) === vacYear;
+      if (r.entry.type === "u") { vacDays += 1; if (inVacYear) vacDaysYear += 1; }
+      else if (r.entry.type === "uh") { vacDays += 0.5; if (inVacYear) vacDaysYear += 0.5; }
+      else if (r.entry.type === "k") sickDays += 1;
+      else if (r.entry.type === "kh") sickDays += 0.5;
+      else if (r.entry.type === "oa") overtimeCutH += (Number(state.settings.targetDay) || 8);
+      else if (r.entry.type === "oah") overtimeCutH += ABS_HALF;
+      else if (r.entry.type === "work") workedH += r.actual;
+    }
+    const vacTotal = (Number(state.settings.vacEntitle) || 0) + (Number(state.settings.vacCarry) || 0);
+    const vacRemaining = vacTotal - vacDaysYear;
+    return { finalBalance, startCarry, vacDays, vacDaysYear, sickDays, workedH, overtimeCutH, count: rows.length,
+             vacTotal, vacRemaining, vacYear };
+  }
+
+  function renderSummary() {
+    const t = computeTotals();
+    const el = document.getElementById("summary");
+    const balCls = t.finalBalance >= 0 ? "pos" : "neg";
+    const perDay = Number(state.settings.targetDay) || 8;
+    const balDays = t.finalBalance / perDay;
+    const remCls = t.vacRemaining < 0 ? "neg" : "pos";
+    const fmtDays = (n) => (Math.abs(n % 1) < 0.001 ? String(n) : n.toFixed(1));
+    const fmtSignedDays = (n) => (Math.abs(n) < 0.001 ? "±0" : (n > 0 ? "+" : "") + fmtDays(n));
+    el.innerHTML = `
+      <div class="stat">
+        <div class="label">Saldo (Stunden)</div>
+        <div class="val ${balCls}">${fmtSignedH(t.finalBalance)}</div>
+        <div class="foot">Std:Min &middot; Start ${fmtSignedH(t.startCarry)}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Saldo (Tage)</div>
+        <div class="val ${balCls}">${fmtSignedDays(balDays)}</div>
+        <div class="foot">bei ${fmtDays(perDay)} Std./Tag</div>
+      </div>
+      <div class="stat">
+        <div class="label">Rest-Urlaub ${t.vacYear}</div>
+        <div class="val ${remCls}">${fmtDays(t.vacRemaining)}</div>
+        <div class="foot">von ${fmtDays(t.vacTotal)} &middot; ${fmtDays(t.vacDaysYear)} genommen</div>
+      </div>
+      <div class="stat">
+        <div class="label">Geleistet</div>
+        <div class="val">${fmtH(t.workedH)}</div>
+        <div class="foot">Arbeitsstunden gesamt</div>
+      </div>
+      <div class="stat">
+        <div class="label">Krank</div>
+        <div class="val">${(t.sickDays % 1 === 0 ? t.sickDays : t.sickDays.toFixed(1))}</div>
+        <div class="foot">Tage erfasst</div>
+      </div>
+      <div class="stat">
+        <div class="label">Überstd.-Abbau</div>
+        <div class="val">${fmtH(t.overtimeCutH)}</div>
+        <div class="foot">durch Freizeitausgleich</div>
+      </div>
+    `;
+  }
+
+  function monthKey(dateStr) { return dateStr.slice(0, 7); }
+
+  function refreshMonthPicker() {
+    const pick = document.getElementById("monthPick");
+    const months = new Set(Object.keys(state.entries).map(monthKey));
+    // aktueller Monat immer verfügbar
+    const now = new Date();
+    months.add(ymd(now).slice(0, 7));
+    const sorted = Array.from(months).sort().reverse();
+    const prev = pick.value;
+    pick.innerHTML = `<option value="__all">Alle Monate</option>` + sorted.map(m => {
+      const [y, mo] = m.split("-");
+      return `<option value="${m}">${DE_MONTHS[parseInt(mo,10)-1]} ${y}</option>`;
+    }).join("");
+    if (prev && (prev === "__all" || sorted.includes(prev))) pick.value = prev;
+    else pick.value = sorted[0] || "__all";
+  }
+
+  function renderLedger() {
+    const { rows } = buildLedger();
+    const pick = document.getElementById("monthPick");
+    const sel = pick.value || "__all";
+    const filtered = sel === "__all" ? rows : rows.filter(r => monthKey(r.date) === sel);
+    const body = document.getElementById("ledgerBody");
+    const empty = document.getElementById("ledgerEmpty");
+
+    if (filtered.length === 0) {
+      body.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    body.innerHTML = filtered.map(r => {
+      const d = new Date(r.date + "T00:00:00");
+      const dayName = DE_DAYS[d.getDay()];
+      const hol = holidayName(r.date);
+      const weekend = isWeekend(r.date);
+      const meta = r.entry ? TYPE_META[r.entry.type] : null;
+
+      let rowCls = "";
+      if (r.entry && (r.entry.type === "u" || r.entry.type === "uh")) rowCls = "absence-u";
+      else if (r.entry && (r.entry.type === "k" || r.entry.type === "kh")) rowCls = "absence-k";
+      else if (r.entry && (r.entry.type === "oa" || r.entry.type === "oah")) rowCls = "absence-o";
+      else if (hol) rowCls = "holiday";
+      else if (weekend) rowCls = "weekend";
+
+      let artCell;
+      if (meta) {
+        artCell = `<span class="badge ${meta.cls}">${meta.label}</span>`;
+        if (hol) artCell += ` <span class="badge b-f" title="${hol}">Feiertag</span>`;
+      } else if (hol) {
+        artCell = `<span class="badge b-f">${hol}</span>`;
+      } else if (weekend) {
+        artCell = `<span class="badge b-we">Wochenende</span>`;
+      } else {
+        artCell = `<span class="badge b-we">—</span>`;
+      }
+
+      const isWork = r.entry && r.entry.type === "work";
+      const kommen = isWork ? (r.entry.start || "—") : "—";
+      const gehen = isWork ? (r.entry.end || "—") : "—";
+      const pause = isWork ? (r.entry.breakMin ? r.entry.breakMin + "′" : "0′") : "—";
+
+      const diffCls = r.diff > 0.001 ? "pos" : (r.diff < -0.001 ? "neg" : "");
+      const balCls = r.balance === null ? "" : (r.balance >= 0 ? "pos" : "neg");
+      const balCell = r.balance === null
+        ? `<span style="opacity:.5" title="Vor Stichtag">im Startsaldo</span>`
+        : fmtSignedH(r.balance);
+
+      const note = r.entry && r.entry.note
+        ? `<div class="day-name" style="max-width:180px;white-space:normal;">${escapeHtml(r.entry.note)}</div>` : "";
+
+      const delBtn = r.entry
+        ? `<button class="tiny danger-ghost no-print" data-del="${r.date}">Löschen</button>`
+        : "";
+
+      return `<tr class="${rowCls}">
+        <td><b>${deDate(r.date)}</b><div class="day-name">${dayName}${r.beforeCarry ? " · vor Stichtag" : ""}</div>${note}</td>
+        <td>${artCell}</td>
+        <td class="mono">${kommen}</td>
+        <td class="mono">${gehen}</td>
+        <td class="mono">${pause}</td>
+        <td class="num">${r.actual ? fmtH(r.actual) : "0:00"}</td>
+        <td class="num">${fmtH(r.target)}</td>
+        <td class="num ${diffCls}">${fmtSignedH(r.diff)}</td>
+        <td class="num ${balCls}"><b>${balCell}</b></td>
+        <td class="no-print">${delBtn}</td>
+      </tr>`;
+    }).join("");
+
+    // Löschen-Buttons
+    body.querySelectorAll("[data-del]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-del");
+        if (confirm("Eintrag für " + deDate(key) + " löschen?")) {
+          delete state.entries[key];
+          save(); renderAll(); toast("Eintrag gelöscht");
+        }
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function renderAll() {
+    refreshMonthPicker();
+    renderSummary();
+    renderLedger();
+  }
+
+  // ---------- Form-Handling ----------
+  function toggleWorkFields() {
+    const type = document.getElementById("eType").value;
+    const show = type === "work";
+    document.querySelectorAll(".work-only").forEach(el => {
+      el.style.display = show ? "" : "none";
+    });
+    let hint;
+    if (show) hint = "Ist-Zeit = Gehen − Kommen − Pause.";
+    else if (type === "oa") hint = "Freizeitausgleich: Saldo sinkt um 8 Std. (ganzer Tag).";
+    else if (type === "oah") hint = "Freizeitausgleich: Saldo sinkt um 4 Std. (halber Tag).";
+    else if (type === "uh" || type === "kh") hint = "Halber Tag: wird mit 4 Std. bewertet.";
+    else hint = "Ganzer Tag: wird mit 8 Std. bewertet.";
+    document.getElementById("halfHint").textContent = hint;
+  }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove("show"), 1900);
+  }
+
+  function addEntry() {
+    const date = document.getElementById("eDate").value;
+    const type = document.getElementById("eType").value;
+    if (!date) { toast("Bitte Datum wählen"); return; }
+
+    const entry = { type, note: document.getElementById("eNote").value.trim() };
+    if (type === "work") {
+      const start = document.getElementById("eStart").value;
+      const end = document.getElementById("eEnd").value;
+      if (!start || !end) { toast("Bitte Kommen und Gehen angeben"); return; }
+      entry.start = start;
+      entry.end = end;
+      entry.breakMin = Number(document.getElementById("eBreak").value) || 0;
+    }
+
+    const existed = !!state.entries[date];
+    state.entries[date] = entry;
+    save();
+    // auf betroffenen Monat springen
+    document.getElementById("monthPick").value = monthKey(date);
+    renderAll();
+    document.getElementById("monthPick").value = monthKey(date);
+    renderLedger();
+    toast(existed ? "Eintrag aktualisiert" : "Eintrag hinzugefügt");
+    // Notiz leeren, Datum + 1 Tag für schnelle Erfassung
+    document.getElementById("eNote").value = "";
+    const d = addDays(new Date(date + "T00:00:00"), 1);
+    document.getElementById("eDate").value = ymd(d);
+  }
+
+  function saveSettings() {
+    state.settings.carryDate = document.getElementById("carryDate").value;
+    state.settings.carryHours = Number(document.getElementById("carryHours").value) || 0;
+    state.settings.targetDay = Number(document.getElementById("targetDay").value) || 8;
+    state.settings.vacYear = Number(document.getElementById("vacYear").value) || new Date().getFullYear();
+    state.settings.vacEntitle = Number(document.getElementById("vacEntitle").value) || 0;
+    state.settings.vacCarry = Number(document.getElementById("vacCarry").value) || 0;
+    save();
+    renderAll();
+    toast("Einstellungen gespeichert");
+  }
+
+  async function exportDataAs(filename) {
+    const json = JSON.stringify(state, null, 2);
+    // iPhone/iPad: Teilen-Menü nutzen ("In Dateien sichern" -> iCloud Drive)
+    try {
+      const file = new File([json], filename, { type: "application/json" });
+      const isTouchApple = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (isTouchApple && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        toast("Gesichert: " + filename);
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // Teilen abgebrochen
+      // sonst: klassischer Download als Fallback
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("Datei erstellt: " + filename);
+  }
+  function exportData() {
+    exportDataAs("zeiterfassung-" + ymd(new Date()) + ".json");
+  }
+
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed.entries) throw new Error("Ungültig");
+        if (!confirm("Import überschreibt die aktuellen Daten. Fortfahren?")) return;
+        state.settings = Object.assign({ carryDate:"", carryHours:0, targetDay:8, vacYear:new Date().getFullYear(), vacEntitle:30, vacCarry:0 }, parsed.settings || {});
+        state.entries = parsed.entries || {};
+        save();
+        fillSettingsForm();
+        renderAll();
+        toast("Import erfolgreich");
+      } catch (e) {
+        toast("Import fehlgeschlagen: ungültige Datei");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function fillSettingsForm() {
+    document.getElementById("carryDate").value = state.settings.carryDate || "";
+    document.getElementById("carryHours").value =
+      (state.settings.carryHours || state.settings.carryHours === 0) ? state.settings.carryHours : "";
+    document.getElementById("targetDay").value = state.settings.targetDay || 8;
+    document.getElementById("vacYear").value = state.settings.vacYear || new Date().getFullYear();
+    document.getElementById("vacEntitle").value =
+      (state.settings.vacEntitle || state.settings.vacEntitle === 0) ? state.settings.vacEntitle : 30;
+    document.getElementById("vacCarry").value =
+      (state.settings.vacCarry || state.settings.vacCarry === 0) ? state.settings.vacCarry : "";
+  }
+
+  // ---------- iCloud-Synchronisation (File System Access API + Fallback) ----------
+  const HAS_FS_ACCESS = (typeof window.showOpenFilePicker === "function");
+  let fileHandle = null;           // FileSystemFileHandle (nur Mac/Desktop)
+  let autoSaveEnabled = false;
+  let autoSaveTimer = null;
+
+  // Kleiner IndexedDB-Helfer, um den Datei-Handle über Neustarts zu behalten
+  const IDB_NAME = "zeiterfassung_sync";
+  const IDB_STORE = "handles";
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(key, val) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDel(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  function setSyncStatus(kind, text) {
+    const dot = document.getElementById("syncDot");
+    const txt = document.getElementById("syncStatusText");
+    dot.className = "sync-dot" + (kind ? " " + kind : "");
+    txt.textContent = text;
+  }
+
+  function fmtStamp(iso) {
+    if (!iso) return "unbekannt";
+    const d = new Date(iso);
+    return `${deDate(ymd(d))} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+
+  function serialize() { return JSON.stringify(state, null, 2); }
+
+  // Wendet geladene Daten an (mit Konfliktprüfung über updatedAt)
+  function applyLoaded(parsed, sourceLabel) {
+    if (!parsed || typeof parsed !== "object" || !parsed.entries) {
+      toast("Datei ungültig oder leer");
+      return false;
+    }
+    const remoteStamp = parsed.updatedAt || null;
+    const localStamp = state.updatedAt || null;
+    // Konflikt: lokale Daten neuer als die geladene Datei
+    if (localStamp && remoteStamp && new Date(localStamp) > new Date(remoteStamp)) {
+      const ok = confirm(
+        "Achtung: Ihre lokalen Daten sind NEUER als die geladene Datei.\n\n" +
+        "Lokal: " + fmtStamp(localStamp) + "\n" +
+        "Datei:  " + fmtStamp(remoteStamp) + "\n\n" +
+        "Trotzdem die (ältere) Datei laden und lokale Änderungen verwerfen?"
+      );
+      if (!ok) return false;
+    } else if (localStamp && !remoteStamp && Object.keys(state.entries).length > 0) {
+      const ok = confirm("Die Datei hat keinen Zeitstempel. Aktuelle lokale Daten überschreiben?");
+      if (!ok) return false;
+    }
+    state.settings = Object.assign(
+      { carryDate:"", carryHours:0, targetDay:8, vacYear:new Date().getFullYear(), vacEntitle:30, vacCarry:0 },
+      parsed.settings || {}
+    );
+    state.entries = parsed.entries || {};
+    state.updatedAt = remoteStamp;
+    save({ keepTimestamp: true, fromSync: true }); // lokal spiegeln, Stempel behalten
+    fillSettingsForm();
+    renderAll();
+    toast("Geladen aus " + sourceLabel + " (" + fmtStamp(remoteStamp) + ")");
+    setSyncStatus("connected", "Verbunden · Stand " + fmtStamp(state.updatedAt));
+    return true;
+  }
+
+  // --- Verbinden ---
+  async function syncConnect() {
+    if (HAS_FS_ACCESS) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: "Zeiterfassung", accept: { "application/json": [".json"] } }],
+          multiple: false
+        });
+        fileHandle = handle;
+        await idbSet("fileHandle", handle);
+        document.getElementById("autoWrap").style.display = "flex";
+        setSyncStatus("connected", "Verbunden: " + handle.name);
+        toast("iCloud-Datei verbunden");
+        // Direkt anbieten zu laden
+        await syncLoad();
+      } catch (e) {
+        if (e && e.name === "AbortError") return; // Nutzer hat abgebrochen
+        setSyncStatus("error", "Verbindung fehlgeschlagen");
+        toast("Verbindung fehlgeschlagen");
+      }
+    } else {
+      // iPhone / Safari: kein dauerhafter Zugriff -> Hinweis
+      alert(
+        "Auf diesem Gerät (Safari/iPhone) ist keine dauerhafte Dateiverbindung möglich.\n\n" +
+        "Nutzen Sie stattdessen:\n" +
+        "• „Laden ↓\": iCloud-Datei einmalig auswählen und einlesen\n" +
+        "• „Sichern ↑\": aktuellen Stand als Datei ablegen (in iCloud Drive speichern)"
+      );
+    }
+  }
+
+  // --- Laden ---
+  async function syncLoad() {
+    // Desktop mit bestehendem Handle
+    if (HAS_FS_ACCESS && fileHandle) {
+      try {
+        if (fileHandle.queryPermission) {
+          const perm = await fileHandle.queryPermission({ mode: "read" });
+          if (perm !== "granted" && fileHandle.requestPermission) {
+            await fileHandle.requestPermission({ mode: "read" });
+          }
+        }
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        applyLoaded(JSON.parse(text), "iCloud-Datei");
+      } catch (e) {
+        setSyncStatus("error", "Laden fehlgeschlagen");
+        toast("Laden fehlgeschlagen");
+      }
+      return;
+    }
+    // Desktop ohne Handle -> Picker
+    if (HAS_FS_ACCESS && !fileHandle) {
+      await syncConnect();
+      return;
+    }
+    // Fallback (iPhone/Safari): klassischer Datei-Dialog
+    const inp = document.getElementById("syncLoadFile");
+    inp.click();
+  }
+
+  function syncLoadFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { applyLoaded(JSON.parse(reader.result), "Datei"); }
+      catch (e) { toast("Datei ungültig"); }
+    };
+    reader.readAsText(file);
+  }
+
+  // --- Sichern ---
+  async function syncSave(opts) {
+    opts = opts || {};
+    // Desktop mit Handle: direkt in die Datei schreiben
+    if (HAS_FS_ACCESS && fileHandle) {
+      try {
+        if (fileHandle.queryPermission) {
+          let perm = await fileHandle.queryPermission({ mode: "readwrite" });
+          if (perm !== "granted" && fileHandle.requestPermission) {
+            perm = await fileHandle.requestPermission({ mode: "readwrite" });
+          }
+          if (perm !== "granted") { toast("Kein Schreibzugriff"); return; }
+        }
+        const writable = await fileHandle.createWritable();
+        await writable.write(serialize());
+        await writable.close();
+        setSyncStatus("connected", "Gesichert · Stand " + fmtStamp(state.updatedAt));
+        if (!opts.silent) toast("In iCloud gesichert");
+      } catch (e) {
+        setSyncStatus("error", "Sichern fehlgeschlagen");
+        toast("Sichern fehlgeschlagen");
+      }
+      return;
+    }
+    // Fallback (iPhone/Safari): Download/Share -> in iCloud Drive ablegen
+    exportDataAs("Zeiterfassung.json");
+  }
+
+  // Auto-Speichern nach lokaler Änderung (nur Desktop mit aktiviertem Toggle)
+  function syncAfterLocalSave() {
+    if (HAS_FS_ACCESS && fileHandle) {
+      setSyncStatus("dirty", "Ungesicherte Änderungen …");
+      if (autoSaveEnabled) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => syncSave({ silent: true }), 800);
+      }
+    }
+  }
+
+  async function restoreHandle() {
+    if (!HAS_FS_ACCESS) {
+      setSyncStatus("", "Fallback-Modus (manuell laden/sichern)");
+      document.getElementById("syncHint").innerHTML =
+        "Auf diesem Gerät (Safari/iPhone) speichern Sie halbautomatisch: <b>Laden ↓</b> liest eine iCloud-Datei ein, " +
+        "<b>Sichern ↑</b> öffnet das Teilen-Menü &rarr; „In Dateien sichern“ &rarr; iCloud Drive (vorhandene Datei ersetzen). Dieselbe Datei auf allen Geräten verwenden.";
+      return;
+    }
+    try {
+      const h = await idbGet("fileHandle");
+      if (h) {
+        fileHandle = h;
+        document.getElementById("autoWrap").style.display = "flex";
+        setSyncStatus("connected", "Verbunden: " + h.name + " · zum Laden tippen");
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function initSyncUI() {
+    document.getElementById("syncConnect").addEventListener("click", syncConnect);
+    document.getElementById("syncLoad").addEventListener("click", () => syncLoad());
+    document.getElementById("syncSave").addEventListener("click", () => syncSave());
+    document.getElementById("autoSave").addEventListener("change", (e) => {
+      autoSaveEnabled = e.target.checked;
+      try { localStorage.setItem("ze_autosave", autoSaveEnabled ? "1" : "0"); } catch (x) {}
+      if (autoSaveEnabled) toast("Auto-Speichern aktiv");
+    });
+    // Auto-Save-Präferenz wiederherstellen
+    try {
+      if (localStorage.getItem("ze_autosave") === "1") {
+        autoSaveEnabled = true;
+        document.getElementById("autoSave").checked = true;
+      }
+    } catch (x) {}
+    // Verstecktes File-Input für den Fallback-Load
+    document.getElementById("syncLoadFile").addEventListener("change", (e) => {
+      if (e.target.files[0]) syncLoadFromFile(e.target.files[0]);
+      e.target.value = "";
+    });
+    restoreHandle();
+  }
+
+  // ---------- Block-Layout (verschieben / ein-/ausklappen) ----------
+  const LAYOUT_KEY = "zeiterfassung_layout_v1";
+  function loadLayout() {
+    try {
+      const raw = localStorage.getItem(LAYOUT_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function saveLayout(layout) {
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch (e) {}
+  }
+  function currentLayout() {
+    const container = document.getElementById("blocks");
+    const blocks = Array.from(container.querySelectorAll(":scope > section.block"));
+    return {
+      order: blocks.map(b => b.getAttribute("data-block")),
+      collapsed: blocks.filter(b => b.classList.contains("collapsed"))
+                       .map(b => b.getAttribute("data-block"))
+    };
+  }
+  function persistLayout() { saveLayout(currentLayout()); }
+
+  function updateMoveButtons() {
+    const container = document.getElementById("blocks");
+    const blocks = Array.from(container.querySelectorAll(":scope > section.block"));
+    blocks.forEach((b, i) => {
+      const up = b.querySelector('[data-move="up"]');
+      const down = b.querySelector('[data-move="down"]');
+      if (up) up.disabled = (i === 0);
+      if (down) down.disabled = (i === blocks.length - 1);
+    });
+  }
+
+  function initBlockLayout() {
+    const container = document.getElementById("blocks");
+    const layout = loadLayout();
+
+    // Reihenfolge wiederherstellen
+    if (Array.isArray(layout.order)) {
+      layout.order.forEach(name => {
+        const el = container.querySelector(`:scope > section.block[data-block="${name}"]`);
+        if (el) container.appendChild(el); // in gespeicherter Reihenfolge ans Ende hängen
+      });
+    }
+    // Eingeklappte Blöcke wiederherstellen
+    if (Array.isArray(layout.collapsed)) {
+      layout.collapsed.forEach(name => {
+        const el = container.querySelector(`:scope > section.block[data-block="${name}"]`);
+        if (el) el.classList.add("collapsed");
+      });
+    }
+
+    // Steuer-Knöpfe verdrahten (Event-Delegation)
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const section = btn.closest("section.block");
+      if (!section) return;
+
+      if (btn.hasAttribute("data-toggle")) {
+        section.classList.toggle("collapsed");
+        persistLayout();
+      } else if (btn.getAttribute("data-move") === "up") {
+        const prev = section.previousElementSibling;
+        if (prev) { container.insertBefore(section, prev); updateMoveButtons(); persistLayout(); }
+      } else if (btn.getAttribute("data-move") === "down") {
+        const next = section.nextElementSibling;
+        if (next) { container.insertBefore(next, section); updateMoveButtons(); persistLayout(); }
+      }
+    });
+
+    updateMoveButtons();
+  }
+
+  // ---------- Init ----------
+  function init() {
+    load();
+    if (!state.settings.vacYear) state.settings.vacYear = new Date().getFullYear();
+    fillSettingsForm();
+
+    const today = ymd(new Date());
+    document.getElementById("eDate").value = today;
+    if (!state.settings.carryDate) {
+      // Standard-Stichtag: heute
+      document.getElementById("carryDate").value = today;
+    }
+
+    document.getElementById("eType").addEventListener("change", toggleWorkFields);
+    toggleWorkFields();
+
+    document.getElementById("addEntry").addEventListener("click", addEntry);
+    document.getElementById("clearForm").addEventListener("click", () => {
+      document.getElementById("eStart").value = "";
+      document.getElementById("eEnd").value = "";
+      document.getElementById("eBreak").value = "30";
+      document.getElementById("eNote").value = "";
+      document.getElementById("eType").value = "work";
+      toggleWorkFields();
+    });
+    document.getElementById("saveSettings").addEventListener("click", saveSettings);
+    document.getElementById("monthPick").addEventListener("change", renderLedger);
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    document.getElementById("exportBtn").addEventListener("click", exportData);
+    document.getElementById("importBtn").addEventListener("click", () =>
+      document.getElementById("importFile").click());
+    document.getElementById("importFile").addEventListener("change", (e) => {
+      if (e.target.files[0]) importData(e.target.files[0]);
+      e.target.value = "";
+    });
+
+    renderAll();
+    initSyncUI();
+    initBlockLayout();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Persönliche Zeitdaten niemals ins (öffentliche) Repository
+*.json
+!manifest.webmanifest
+.DS_Store
